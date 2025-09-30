@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/retell-client-sdk.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -49,7 +49,7 @@
             const statusText = document.getElementById('status-text');
             const messageBox = document.getElementById('message-box');
 
-            // 1. FIX: Check for and use the correct client class (RetellWebClient)
+            // 1. Check for and use the correct client class (RetellWebClient)
             if (typeof window.Retell === 'undefined' || typeof window.Retell.RetellWebClient === 'undefined') {
                 console.error("Retell SDK not loaded or failed to initialize.");
                 statusText.textContent = "Error: Voice SDK failed to load. Please refresh or check your internet connection.";
@@ -57,13 +57,9 @@
                 return;
             }
 
-            // 1. FIX: Initialize with RetellWebClient
+            // 2. Initialize with RetellWebClient
             const sdk = new window.Retell.RetellWebClient();
 
-            // Note: The event names ('conversationStarted', 'conversationEnded', 'error') are correct for this SDK wrapper.
-            // The documentation snippet showed 'call_started' and 'call_ended', which are internal socket events,
-            // but the higher-level SDK typically uses the 'conversation' events for the promise/callback wrapper, 
-            // so we will keep the original, working event names.
             sdk.on('conversationStarted', () => {
                 console.log('Conversation started');
                 statusText.textContent = 'Connected. Start speaking now.';
@@ -108,7 +104,7 @@
                     
                     console.log('Received response from n8n:', registerCallResponse);
 
-                    // 2. FIX: Use the correct method, startCall()
+                    // 3. Use the correct method, startCall()
                     await sdk.startCall(registerCallResponse); 
                     console.log('Call started successfully');
 
@@ -120,8 +116,6 @@
                 }
             });
 
-            // Note: The documentation shows stopCall(), which is the same as your existing stopConversation() method, 
-            // but stopCall is more explicit to the documentation. We'll update it for best practice.
             endButton.addEventListener('click', () => {
                 // Best practice: use stopCall as per documentation
                 sdk.stopCall(); 
