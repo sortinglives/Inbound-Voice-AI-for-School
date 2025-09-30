@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -50,10 +50,9 @@
             const messageBox = document.getElementById('message-box');
 
             // 1. Check for and use the correct client class (RetellWebClient)
-            // The global object exposed by index.min.js should still be window.Retell
             if (typeof window.Retell === 'undefined' || typeof window.Retell.RetellWebClient === 'undefined') {
-                console.error("Retell SDK not loaded or failed to initialize.");
-                statusText.textContent = "Error: Voice SDK failed to load. Please check console for 404/network errors.";
+                console.error("Retell SDK not loaded or failed to initialize. Check the Network tab in your browser's developer tools for a 404 error on the script file.");
+                statusText.textContent = "Error: Voice SDK failed to load. Check your console/network tab for the file path error. 🛑";
                 if(startButton) startButton.disabled = true;
                 return;
             }
