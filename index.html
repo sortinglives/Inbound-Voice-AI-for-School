@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Retell SDK - UPDATED URL -->
     <script src="https://unpkg.com/retell-sdk/dist/retell-client-sdk.umd.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -69,57 +68,4 @@
 
             sdk.on('conversationEnded', () => {
                 console.log('Conversation ended');
-                statusText.textContent = 'Call ended. Click "Start Call" to talk again.';
-                startButton.disabled = false;
-                startButton.classList.remove('hidden');
-                endButton.classList.add('hidden');
-            });
-
-            sdk.on('error', (error) => {
-                console.error('An error occurred:', error);
-                statusText.textContent = 'An error occurred. Please try again.';
-                messageBox.textContent = 'Error: ' + error.message;
-                startButton.disabled = false;
-            });
-
-            startButton.addEventListener('click', async () => {
-                if (N8N_REGISTER_CALL_URL === YOUR_N8N_WEBHOOK_URL_HERE || !N8N_REGISTER_CALL_URL) {
-                    messageBox.textContent = 'Configuration Error: n8n webhook URL is not set.';
-                    return;
-                }
-
-                startButton.disabled = true;
-                statusText.textContent = 'Connecting... Please wait.';
-                messageBox.textContent = '';
-                
-                try {
-                    const response = await fetch(N8N_REGISTER_CALL_URL, { method: 'POST' });
-                    
-                    if (!response.ok) {
-                        throw new Error(Failed to register call: ${response.statusText});
-                    }
-                    
-                    const registerCallResponse = await response.json();
-                    
-                    console.log('Received response from n8n:', registerCallResponse);
-
-                    await sdk.startConversation(registerCallResponse);
-                    console.log('Conversation started successfully');
-
-                } catch (err) {
-                    console.error('Error starting conversation:', err);
-                    statusText.textContent = 'Failed to connect. Please try again.';
-                    messageBox.textContent = err.message;
-                    startButton.disabled = false;
-                }
-            });
-
-            endButton.addEventListener('click', () => {
-                sdk.stopConversation();
-            });
-        });
-    </script>
-</body>
-</html>
-
-
+                statusText.
