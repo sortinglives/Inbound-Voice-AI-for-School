@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/retell-client-js-sdk/dist/retell-client-sdk.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/retell-client-sdk.umd.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -52,7 +52,7 @@
             // The global object exposed by the SDK is 'Retell', regardless of the package name
             if (typeof window.Retell === 'undefined' || typeof window.Retell.RetellClient === 'undefined') {
                 console.error("Retell SDK not loaded or failed to initialize.");
-                statusText.textContent = "Error: Voice SDK failed to load. Please refresh.";
+                statusText.textContent = "Error: Voice SDK failed to load. Please refresh or check your internet connection.";
                 if(startButton) startButton.disabled = true;
                 return;
             }
@@ -96,7 +96,6 @@
                     const response = await fetch(N8N_REGISTER_CALL_URL, { method: 'POST' });
                     
                     if (!response.ok) {
-                        // SyntaxError fix is maintained here
                         throw new Error(`Failed to register call: ${response.statusText}`);
                     }
                     
