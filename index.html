@@ -80,7 +80,7 @@
             if (N8N_REGISTER_CALL_URL === 'YOUR_N8N_WEBHOOK_URL_HERE' || !N8N_REGISTER_CALL_URL) {
                 messageBox.textContent = 'Configuration Error: n8n webhook URL is not set.';
                 return;
-            }
+            })
 
             startButton.disabled = true;
             statusText.textContent = 'Connecting... Please wait.';
@@ -109,7 +109,7 @@
                 messageBox.textContent = err.message;
                 startButton.disabled = false;
             }
-        });
+        };
 
         endButton.addEventListener('click', () => {
             sdk.stopConversation();
@@ -118,3 +118,4 @@
     </script>
 </body>
 </html>
+
