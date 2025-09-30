@@ -1,126 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Voice Agent Demo (Web Call)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Voice Agent Demo (Web Call)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js"></script>
+  <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
 
-    <div class="w-full max-w-md mx-auto p-8 rounded-2xl bg-gray-800 shadow-2xl border border-gray-700 text-center">
-        <h1 class="text-3xl font-bold text-white">AI Voice Agent Demo</h1>
-        <p id="status-text" class="text-gray-400 mt-2">Click "Start Call" to speak with our AI assistant.</p>
-        
-        <div class="mt-8">
-            <button 
-                id="start-call-button"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out"
-            >
-                Start Call
-            </button>
-            <button 
-                id="end-call-button"
-                class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hidden"
-            >
-                End Call
-            </button>
-        </div>
+  <div class="w-full max-w-md mx-auto p-8 rounded-2xl bg-gray-800 shadow-2xl border border-gray-700 text-center">
+    <h1 class="text-3xl font-bold">AI Voice Agent Demo</h1>
+    <p id="status-text" class="text-gray-400 mt-2" aria-live="polite">
+      Click “Start Call” to speak with our AI assistant.
+    </p>
 
-        <div id="message-box" class="mt-6 text-sm text-red-400"></div>
+    <div class="mt-8 space-y-3">
+      <button id="start-call-button"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+        Start Call
+      </button>
+      <button id="end-call-button"
+        class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition hidden disabled:opacity-50 disabled:cursor-not-allowed">
+        End Call
+      </button>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- CONFIGURATION ---
-            // PASTE YOUR N8N WEBHOOK URL INSIDE THE BACKTICKS
-            const N8N_REGISTER_CALL_URL = `https://tanyajain02.app.n8n.cloud/webhook/eb179fa8-b0cc-41b7-98d7-74f95887fd9c`; 
-            // -------------------
+    <div id="message-box" class="mt-6 text-sm text-red-400"></div>
+  </div>
 
-            const startButton = document.getElementById('start-call-button');
-            const endButton = document.getElementById('end-call-button');
-            const statusText = document.getElementById('status-text');
-            const messageBox = document.getElementById('message-box');
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // --- CONFIGURATION ---
+      // Your n8n webhook must reply with: { "access_token": "..." }
+      // Make sure CORS is allowed on the response.
+      const N8N_REGISTER_CALL_URL = 'https://tanyajain02.app.n8n.cloud/webhook/eb179fa8-b0cc-41b7-98d7-74f95887fd9c';
+      const REQUEST_TIMEOUT_MS = 15000;
+      // ---------------------
 
-            // 1. Check for and use the correct client class (RetellWebClient)
-            if (typeof window.Retell === 'undefined' || typeof window.Retell.RetellWebClient === 'undefined') {
-                console.error("Retell SDK not loaded or failed to initialize. Check the Network tab in your browser's developer tools for a 404 error on the script file.");
-                statusText.textContent = "Error: Voice SDK failed to load. Check your console/network tab for the file path error. 🛑";
-                if(startButton) startButton.disabled = true;
-                return;
-            }
+      const $ = (id) => document.getElementById(id);
+      const startButton = $('start-call-button');
+      const endButton   = $('end-call-button');
+      const statusText  = $('status-text');
+      const messageBox  = $('message-box');
 
-            // 2. Initialize with RetellWebClient
-            const sdk = new window.Retell.RetellWebClient();
+      function setError(msg) {
+        const text = typeof msg === 'string' ? msg : (msg?.message || 'Unknown error');
+        console.error(text);
+        messageBox.textContent = text;
+      }
 
-            sdk.on('conversationStarted', () => {
-                console.log('Conversation started');
-                statusText.textContent = 'Connected. Start speaking now.';
-                messageBox.textContent = '';
-                startButton.classList.add('hidden');
-                endButton.classList.remove('hidden');
-            });
+      function toggleDuringCall(inCall) {
+        startButton.classList.toggle('hidden', inCall);
+        endButton.classList.toggle('hidden', !inCall);
+        startButton.disabled = inCall;
+        endButton.disabled = !inCall;
+      }
 
-            sdk.on('conversationEnded', () => {
-                console.log('Conversation ended');
-                statusText.textContent = 'Call ended. Click "Start Call" to talk again.';
-                startButton.disabled = false;
-                startButton.classList.remove('hidden');
-                endButton.classList.add('hidden');
-            });
+      // SDK presence check
+      if (!window.Retell || !window.Retell.RetellWebClient) {
+        statusText.textContent = 'Error: Voice SDK failed to load. Check console/network.';
+        setError('Retell SDK not loaded or failed to initialize.');
+        startButton.disabled = true;
+        return;
+      }
 
-            sdk.on('error', (error) => {
-                console.error('An error occurred:', error);
-                statusText.textContent = 'An error occurred. Please try again.';
-                messageBox.textContent = 'Error: ' + error.message;
-                startButton.disabled = false;
-            });
+      const retell = new window.Retell.RetellWebClient();
 
-            startButton.addEventListener('click', async () => {
-                if (!N8N_REGISTER_CALL_URL) {
-                    messageBox.textContent = 'Configuration Error: n8n webhook URL is not set.';
-                    return;
-                }
+      // Retell events
+      retell.on('call_started', () => {
+        console.log('Call started');
+        statusText.textContent = 'Connected. Start speaking now.';
+        messageBox.textContent = '';
+        toggleDuringCall(true);
+      });
 
-                startButton.disabled = true;
-                statusText.textContent = 'Connecting... Please wait.';
-                messageBox.textContent = '';
-                
-                try {
-                    const response = await fetch(N8N_REGISTER_CALL_URL, { method: 'POST' });
-                    
-                    if (!response.ok) {
-                        throw new Error(`Failed to register call: ${response.statusText}`);
-                    }
-                    
-                    const registerCallResponse = await response.json();
-                    
-                    console.log('Received response from n8n:', registerCallResponse);
+      retell.on('call_ended', () => {
+        console.log('Call ended');
+        statusText.textContent = 'Call ended. Click “Start Call” to talk again.';
+        toggleDuringCall(false);
+      });
 
-                    // 3. Use the correct method, startCall()
-                    await sdk.startCall(registerCallResponse); 
-                    console.log('Call started successfully');
+      retell.on('error', (error) => {
+        console.error('SDK error:', error);
+        statusText.textContent = 'An error occurred. Please try again.';
+        setError(error);
+        toggleDuringCall(false);
+      });
 
-                } catch (err) {
-                    console.error('Error starting call:', err);
-                    statusText.textContent = 'Failed to connect. Please try again.';
-                    messageBox.textContent = err.message;
-                    startButton.disabled = false;
-                }
-            });
+      // Optional: stop call if the tab hides (prevents stuck audio)
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          try { retell.stopCall && retell.stopCall(); } catch(_) {}
+        }
+      });
 
-            endButton.addEventListener('click', () => {
-                // Best practice: use stopCall as per documentation
-                sdk.stopCall(); 
-            });
-        });
-    </script>
-</body>
-</html>
+      // Helper: fetch with timeout
+      async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const res = await fetch(url, { ...options, signal: controller.signal });
+          return res;
+        } finally {
+          clearTimeout(t);
+        }
+      }
+
+      // Start Call
+      startButton.addEventListener('click', async () => {
+        if (!N8N_REGISTER_CALL_URL) {
+          setError('Configuration Error: n8n webhook URL is not set.');
+          return;
+        }
+
+        startButton.disabled = true;
+        statusText.textContent = 'Requesting microphone & connecting...';
+        messageBox.textContent = '';
+
+        try {
+          // Ensure user has granted mic permission (improves UX)
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+
+          // If Safari blocks audio until user gesture, ensure AudioContext is resumed
+          if (window.AudioContext) {
+            try {
+              const ctx = new AudioContext();
+              if (ctx.state === 'suspended') await ctx.resume();
+              // Close to free resources; Retell manages its own audio
+              await ctx.close();
+            } catch (_) {}
+          }
+
+          // Call your n8n webhook to mint an access token
+          const response = await fetchWithTimeout(N8N_REGISTER_CALL_URL, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' }
+            // If your workflow needs input, send a body:
+            // body: JSON.stringify({ userId: 'demo-123' }),
