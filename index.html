@@ -96,8 +96,29 @@
                     const response = await fetch(N8N_REGISTER_CALL_URL, { method: 'POST' });
                     
                     if (!response.ok) {
-                        // FIX: Corrected the SyntaxError by enclosing the string in backticks (`)
+                        // SyntaxError fix is maintained here
                         throw new Error(`Failed to register call: ${response.statusText}`);
                     }
                     
-                    const registerCallResponse = await response
+                    const registerCallResponse = await response.json();
+                    
+                    console.log('Received response from n8n:', registerCallResponse);
+
+                    await sdk.startConversation(registerCallResponse);
+                    console.log('Conversation started successfully');
+
+                } catch (err) {
+                    console.error('Error starting conversation:', err);
+                    statusText.textContent = 'Failed to connect. Please try again.';
+                    messageBox.textContent = err.message;
+                    startButton.disabled = false;
+                }
+            });
+
+            endButton.addEventListener('click', () => {
+                sdk.stopConversation();
+            });
+        });
+    </script>
+</body>
+</html>
