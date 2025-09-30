@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/retell-sdk/dist/retell-client-sdk.umd.js"></script>
+    <script src="https://unpkg.com/retell-client-js-sdk/dist/retell-client-sdk.umd.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -49,6 +49,7 @@
             const statusText = document.getElementById('status-text');
             const messageBox = document.getElementById('message-box');
 
+            // The global object exposed by the SDK is 'Retell', regardless of the package name
             if (typeof window.Retell === 'undefined' || typeof window.Retell.RetellClient === 'undefined') {
                 console.error("Retell SDK not loaded or failed to initialize.");
                 statusText.textContent = "Error: Voice SDK failed to load. Please refresh.";
@@ -68,4 +69,35 @@
 
             sdk.on('conversationEnded', () => {
                 console.log('Conversation ended');
-                statusText.
+                statusText.textContent = 'Call ended. Click "Start Call" to talk again.';
+                startButton.disabled = false;
+                startButton.classList.remove('hidden');
+                endButton.classList.add('hidden');
+            });
+
+            sdk.on('error', (error) => {
+                console.error('An error occurred:', error);
+                statusText.textContent = 'An error occurred. Please try again.';
+                messageBox.textContent = 'Error: ' + error.message;
+                startButton.disabled = false;
+            });
+
+            startButton.addEventListener('click', async () => {
+                if (!N8N_REGISTER_CALL_URL) {
+                    messageBox.textContent = 'Configuration Error: n8n webhook URL is not set.';
+                    return;
+                }
+
+                startButton.disabled = true;
+                statusText.textContent = 'Connecting... Please wait.';
+                messageBox.textContent = '';
+                
+                try {
+                    const response = await fetch(N8N_REGISTER_CALL_URL, { method: 'POST' });
+                    
+                    if (!response.ok) {
+                        // FIX: Corrected the SyntaxError by enclosing the string in backticks (`)
+                        throw new Error(`Failed to register call: ${response.statusText}`);
+                    }
+                    
+                    const registerCallResponse = await response
