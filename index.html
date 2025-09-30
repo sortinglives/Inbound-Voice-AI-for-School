@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Agent Demo (Web Call)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Retell SDK -->
+    <script src="https://cdn.retellai.com/sdk/beta/retell-client-sdk.umd.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md mx-auto p-8 rounded-2xl bg-gray-800 shadow-2xl border border-gray-700 text-center">
+        <h1 class="text-3xl font-bold text-white">AI Voice Agent Demo</h1>
+        <p id="status-text" class="text-gray-400 mt-2">Click "Start Call" to speak with our AI assistant.</p>
+        
+        <div class="mt-8">
+            <button 
+                id="start-call-button"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out"
+            >
+                Start Call
+            </button>
+            <button 
+                id="end-call-button"
+                class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hidden"
+            >
+                End Call
+            </button>
+        </div>
+
+        <div id="message-box" class="mt-6 text-sm text-red-400"></div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // PASTE YOUR N8N WEBHOOK URL (from the new workflow) HERE
+        const N8N_REGISTER_CALL_URL = 'https://tanyajain02.app.n8n.cloud/webhook/eb179fa8-b0cc-41b7-98d7-74f95887fd9c'; 
+        // -------------------
+
+        const startButton = document.getElementById('start-call-button');
+        const endButton = document.getElementById('end-call-button');
+        const statusText = document.getElementById('status-text');
+        const messageBox = document.getElementById('message-box');
+
+        const sdk = new window.Retell.RetellClient();
+
+        // --- Event Listeners from SDK ---
+        sdk.on('conversationStarted', () => {
+            console.log('Conversation started');
+            statusText.textContent = 'Connected. Start speaking now.';
+            messageBox.textContent = '';
+            startButton.classList.add('hidden');
+            endButton.classList.remove('hidden');
+        });
+
+        sdk.on('conversationEnded', () => {
+            console.log('Conversation ended');
+            statusText.textContent = 'Call ended. Click "Start Call" to talk again.';
+            startButton.disabled = false;
+            startButton.classList.remove('hidden');
+            endButton.classList.add('hidden');
+        });
+
+        sdk.on('error', (error) => {
+            console.error('An error occurred:', error);
+            statusText.textContent = 'An error occurred. Please try again.';
+            messageBox.textContent = 'Error: ' + error.message;
+            startButton.disabled = false;
+        });
+
+        // --- Button Click Handlers ---
+        startButton.addEventListener('click', async () => {
+            if (N8N_REGISTER_CALL_URL === 'YOUR_N8N_WEBHOOK_URL_HERE' || !N8N_REGISTER_CALL_URL) {
+                messageBox.textContent = 'Configuration Error: n8n webhook URL is not set.';
+                return;
+            }
+
+            startButton.disabled = true;
+            statusText.textContent = 'Connecting... Please wait.';
+            messageBox.textContent = '';
+            
+            try {
+                // 1. Fetch the registerCallResponse from our n8n backend
+                const response = await fetch(N8N_REGISTER_CALL_URL, { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error(Failed to register call: ${response.statusText});
+                }
+                const registerCallResponse = await response.json();
+                console.log('Received response from n8n:', registerCallResponse);
+
+                // 2. Start the conversation using the SDK
+                await sdk.startConversation(registerCallResponse);
+                console.log('Conversation started successfully');
+
+            } catch (err) {
+                console.error('Error starting conversation:', err);
+                statusText.textContent = 'Failed to connect. Please try again.';
+                messageBox.textContent = err.message;
+                startButton.disabled = false;
+            }
+        });
+
+        endButton.addEventListener('click', () => {
+            sdk.stopConversation();
+        });
+
+    </script>
+</body>
+</html>
