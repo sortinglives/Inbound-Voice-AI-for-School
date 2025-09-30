@@ -89,10 +89,14 @@
             try {
                 // 1. Fetch the registerCallResponse from our n8n backend
                 const response = await fetch(N8N_REGISTER_CALL_URL, { method: 'POST' });
+                
                 if (!response.ok) {
                     throw new Error(Failed to register call: ${response.statusText});
                 }
+                
                 const registerCallResponse = await response.json();
+                
+                // New line for debugging: Check what we received from n8n
                 console.log('Received response from n8n:', registerCallResponse);
 
                 // 2. Start the conversation using the SDK
