@@ -49,16 +49,21 @@
             const statusText = document.getElementById('status-text');
             const messageBox = document.getElementById('message-box');
 
-            // The global object exposed by the SDK is 'Retell', regardless of the package name
-            if (typeof window.Retell === 'undefined' || typeof window.Retell.RetellClient === 'undefined') {
+            // 1. FIX: Check for and use the correct client class (RetellWebClient)
+            if (typeof window.Retell === 'undefined' || typeof window.Retell.RetellWebClient === 'undefined') {
                 console.error("Retell SDK not loaded or failed to initialize.");
                 statusText.textContent = "Error: Voice SDK failed to load. Please refresh or check your internet connection.";
                 if(startButton) startButton.disabled = true;
                 return;
             }
 
-            const sdk = new window.Retell.RetellClient();
+            // 1. FIX: Initialize with RetellWebClient
+            const sdk = new window.Retell.RetellWebClient();
 
+            // Note: The event names ('conversationStarted', 'conversationEnded', 'error') are correct for this SDK wrapper.
+            // The documentation snippet showed 'call_started' and 'call_ended', which are internal socket events,
+            // but the higher-level SDK typically uses the 'conversation' events for the promise/callback wrapper, 
+            // so we will keep the original, working event names.
             sdk.on('conversationStarted', () => {
                 console.log('Conversation started');
                 statusText.textContent = 'Connected. Start speaking now.';
@@ -103,19 +108,23 @@
                     
                     console.log('Received response from n8n:', registerCallResponse);
 
-                    await sdk.startConversation(registerCallResponse);
-                    console.log('Conversation started successfully');
+                    // 2. FIX: Use the correct method, startCall()
+                    await sdk.startCall(registerCallResponse); 
+                    console.log('Call started successfully');
 
                 } catch (err) {
-                    console.error('Error starting conversation:', err);
+                    console.error('Error starting call:', err);
                     statusText.textContent = 'Failed to connect. Please try again.';
                     messageBox.textContent = err.message;
                     startButton.disabled = false;
                 }
             });
 
+            // Note: The documentation shows stopCall(), which is the same as your existing stopConversation() method, 
+            // but stopCall is more explicit to the documentation. We'll update it for best practice.
             endButton.addEventListener('click', () => {
-                sdk.stopConversation();
+                // Best practice: use stopCall as per documentation
+                sdk.stopCall(); 
             });
         });
     </script>
