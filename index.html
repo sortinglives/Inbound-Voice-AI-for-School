@@ -1,144 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Voice Agent Demo (Web Call)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.umd.js"></script>
-  <style>body { font-family: 'Inter', sans-serif; }</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retell Voice Agent Demo</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; }
+        #status { margin-bottom: 20px; font-size: 1.1em; color: #333; }
+        #startCall, #endCall {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin: 5px;
+        }
+        #startCall { background-color: #28a745; color: white; }
+        #startCall:hover { background-color: #218838; transform: translateY(-2px); }
+        #endCall { background-color: #dc3545; color: white; display: none; } /* Initially hidden */
+        #endCall:hover { background-color: #c82333; transform: translateY(-2px); }
+        .container { background-color: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); text-align: center; }
+        h1 { color: #333; margin-bottom: 30px; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
-
-  <div class="w-full max-w-md mx-auto p-8 rounded-2xl bg-gray-800 shadow-2xl border border-gray-700 text-center">
-    <h1 class="text-3xl font-bold">AI Voice Agent Demo</h1>
-    <p id="status-text" class="text-gray-400 mt-2" aria-live="polite">
-      Click “Start Call” to speak with our AI assistant.
-    </p>
-
-    <div class="mt-8 space-y-3">
-      <button id="start-call-button"
-        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-        Start Call
-      </button>
-      <button id="end-call-button"
-        class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition hidden disabled:opacity-50 disabled:cursor-not-allowed">
-        End Call
-      </button>
+<body>
+    <div class="container">
+        <h1>Talk to Our Voice Agent</h1>
+        <p id="status">Click "Start Call" to begin.</p>
+        <button id="startCall">Start Call</button>
+        <button id="endCall">End Call</button>
     </div>
 
-    <div id="message-box" class="mt-6 text-sm text-red-400"></div>
-  </div>
+    <!-- Retell SDK Script -->
+    <script src="https://unpkg.com/@retell-ai/retell-sdk/dist/retell-sdk.js"></script>
+    <script>
+        // REPLACE THIS WITH YOUR ACTUAL RETELL API KEY
+        // DO NOT use your SECRET key directly in client-side code!
+        // For a production app, you'd use a backend to generate a temporary token.
+        // For a simple demo, a publishable API key is often sufficient if you understand the risks.
+        const R_RETELL_API_KEY = "YOUR_RETELL_PUBLISHABLE_API_KEY"; // Get this from Retell Dashboard -> API Keys -> Create new -> "Publishable Key"
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // --- CONFIGURATION ---
-      // Your n8n webhook must reply with: { "access_token": "..." }
-      // Make sure CORS is allowed on the response.
-      const N8N_REGISTER_CALL_URL = 'https://tanyajain02.app.n8n.cloud/webhook/eb179fa8-b0cc-41b7-98d7-74f95887fd9c';
-      const REQUEST_TIMEOUT_MS = 15000;
-      // ---------------------
+        // REPLACE THIS WITH YOUR RETELL AGENT ID
+        const AGENT_ID = "YOUR_AGENT_ID"; // Get this from your Retell agent's settings
 
-      const $ = (id) => document.getElementById(id);
-      const startButton = $('start-call-button');
-      const endButton   = $('end-call-button');
-      const statusText  = $('status-text');
-      const messageBox  = $('message-box');
+        let conversation;
+        const statusElement = document.getElementById('status');
+        const startButton = document.getElementById('startCall');
+        const endButton = document.getElementById('endCall');
 
-      function setError(msg) {
-        const text = typeof msg === 'string' ? msg : (msg?.message || 'Unknown error');
-        console.error(text);
-        messageBox.textContent = text;
-      }
+        startButton.addEventListener('click', async () => {
+            statusElement.textContent = "Connecting...";
+            startButton.disabled = true;
 
-      function toggleDuringCall(inCall) {
-        startButton.classList.toggle('hidden', inCall);
-        endButton.classList.toggle('hidden', !inCall);
-        startButton.disabled = inCall;
-        endButton.disabled = !inCall;
-      }
-
-      // SDK presence check
-      if (!window.Retell || !window.Retell.RetellWebClient) {
-        statusText.textContent = 'Error: Voice SDK failed to load. Check console/network.';
-        setError('Retell SDK not loaded or failed to initialize.');
-        startButton.disabled = true;
-        return;
-      }
-
-      const retell = new window.Retell.RetellWebClient();
-
-      // Retell events
-      retell.on('call_started', () => {
-        console.log('Call started');
-        statusText.textContent = 'Connected. Start speaking now.';
-        messageBox.textContent = '';
-        toggleDuringCall(true);
-      });
-
-      retell.on('call_ended', () => {
-        console.log('Call ended');
-        statusText.textContent = 'Call ended. Click “Start Call” to talk again.';
-        toggleDuringCall(false);
-      });
-
-      retell.on('error', (error) => {
-        console.error('SDK error:', error);
-        statusText.textContent = 'An error occurred. Please try again.';
-        setError(error);
-        toggleDuringCall(false);
-      });
-
-      // Optional: stop call if the tab hides (prevents stuck audio)
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          try { retell.stopCall && retell.stopCall(); } catch(_) {}
-        }
-      });
-
-      // Helper: fetch with timeout
-      async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
-        const controller = new AbortController();
-        const t = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-          const res = await fetch(url, { ...options, signal: controller.signal });
-          return res;
-        } finally {
-          clearTimeout(t);
-        }
-      }
-
-      // Start Call
-      startButton.addEventListener('click', async () => {
-        if (!N8N_REGISTER_CALL_URL) {
-          setError('Configuration Error: n8n webhook URL is not set.');
-          return;
-        }
-
-        startButton.disabled = true;
-        statusText.textContent = 'Requesting microphone & connecting...';
-        messageBox.textContent = '';
-
-        try {
-          // Ensure user has granted mic permission (improves UX)
-          await navigator.mediaDevices.getUserMedia({ audio: true });
-
-          // If Safari blocks audio until user gesture, ensure AudioContext is resumed
-          if (window.AudioContext) {
             try {
-              const ctx = new AudioContext();
-              if (ctx.state === 'suspended') await ctx.resume();
-              // Close to free resources; Retell manages its own audio
-              await ctx.close();
-            } catch (_) {}
-          }
+                // Initialize the Retell conversation with your API key and agent ID
+                conversation = new Retell.WebClient({
+                    retellApiKey: R_RETELL_API_KEY,
+                    agentId: AGENT_ID
+                });
 
-          // Call your n8n webhook to mint an access token
-          const response = await fetchWithTimeout(N8N_REGISTER_CALL_URL, {
-            method: 'POST',
-            headers: { 'Accept': 'application/json' }
-            // If your workflow needs input, send a body:
-            // body: JSON.stringify({ userId: 'demo-123' }),
+                conversation.on('conversationStarted', () => {
+                    statusElement.textContent = "Call started! You are connected to the agent. Say hello!";
+                    startButton.style.display = 'none';
+                    endButton.style.display = 'inline-block';
+                    console.log('Conversation started!');
+                });
+
+                conversation.on('conversationEnded', ({ code, reason }) => {
+                    statusElement.textContent = `Call ended. Code: ${code}, Reason: ${reason || 'User hung up'}`;
+                    startButton.style.display = 'inline-block';
+                    endButton.style.display = 'none';
+                    startButton.disabled = false;
+                    console.log('Conversation ended!', { code, reason });
+                });
+
+                conversation.on('error', (error) => {
+                    statusElement.textContent = `Error: ${error.message}`;
+                    startButton.disabled = false;
+                    startButton.style.display = 'inline-block';
+                    endButton.style.display = 'none';
+                    console.error('Retell error:', error);
+                });
+
+                await conversation.start(); // Start the WebRTC connection
+            } catch (error) {
+                statusElement.textContent = `Failed to start call: ${error.message}`;
+                startButton.disabled = false;
+                console.error('Error starting conversation:', error);
+            }
+        });
+
+        endButton.addEventListener('click', () => {
+            if (conversation) {
+                conversation.stop();
+                statusElement.textContent = "Ending call...";
+            }
+        });
+    </script>
+</body>
+</html>
